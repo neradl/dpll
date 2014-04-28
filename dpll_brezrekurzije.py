@@ -1,5 +1,6 @@
 from bool import *
 from cnf import *
+import copy
 
 
 
@@ -7,63 +8,112 @@ def dpll(formula):
     # v prvem delu formulo v CNF obliki pretvorimo v seznam slovarjev
     # (zunanji je And, notranji so Or stavki)
     formula=formula.cnf()
-    string_formula=[]
+    list_formula=[]
     for s in formula.stavki:
-        D={}
+        d={}
         if len(s.literali)==0:
             return 'Ni rešitve.'
         for l in s.literali:
             b=isinstance(l,Lit)
-            if l.ime in D and D[l.ime]!=b:
-                D={}
+            if l.ime in d and d[l.ime]!=b:
+                d={}
                 break
             else:
-                D[l.ime]=b
-        if len(D)>0:
-            string_formula.append(D)
-    return dpll1(string_formula)
+                d[l.ime]=b
+        if len(d)>0:
+            list_formula.append(d)
+
+    [list_formula, znane_spr]=dpll1(list_formula, {})
+    print(list_formula)
+    return vstavljanje(list_formula, znane_spr)
 
 
             
-def dpll1(string_formula,znane_spr={}):
+def dpll1(list_formula, znane_spr={}):
     s=True
     while s:
         s=False
-        for i in string_formula[:]:
+        for i in list_formula[:]:
             if i=={}:
-                return 'Ni rešitve.'
-
+                return ['Ni rešitve.',1]
             
             if len(i)==1:
                 # imamo samo en literal v stavku
                 l,b=list(i.items())[0]
                 if l in znane_spr and znane_spr[l]!=b:
-                    return 'Ni rešitve.'
+                    return ['Ni rešitve.',2]
                 else:
                     znane_spr[l]=b
-
+                    
                 # zbrišemo literal not l ali stavek, v katerem nastopa literal l
-                for k in string_formula[:]:
+                for k in list_formula[:]:
                     if l in k:
                         if k[l]==b:
-                            string_formula.remove(k)                           
+                            list_formula.remove(k)                           
                         else:
                             del k[l]                           
                             # tu se pokličemo rekurzivno, če med brisanjem elementov iz seznama
                             # pridelamo seznam dolžine <=1
                             s=s or len(k)<=1   
-    return [string_formula, znane_spr]
+    return [list_formula, znane_spr]
+
+
+
+def vstavljanje(list_formula, znane_spr={}):
+    if list_formula==[]:
+        return znane_spr
+    
+    elif list_formula=='Ni rešitve':
+        return ['Ni rešitve',1]
+
+    else:
+        neznane_spr=[]
+        for i in list_formula:
+            for j in i:
+                if j not in znane_spr:
+                    neznane_spr.append(j)
+                    print(neznane_spr)
+                    break
+                
+        list_formula1=list_formula.copy()
+        znane_spr1=znane_spr.copy()
+        
+        
+        if len(neznane_spr)>0:
+            l=neznane_spr[0]
+            znane_spr1[l]=True
+            for k in list_formula1[:]:
+                if l in k:                        
+                    if k[l]==True:
+                        list_formula1.remove(k)                           
+                    else:
+                        del k[l]
+            [list_formula1, znane_spr1]=dpll1(list_formula1, znane_spr1)            
+            [list_formula1, znane_spr1]=vstavljanje(list_formula1, znane_spr1)
+            if list_formula1=='Ni rešitve.':
+                znane_spr[l]=False
+                for k in list_formula[:]:
+                    if l in k:                        
+                        if k[l]==False:
+                            list_formula.remove(k)                           
+                        else:
+                            del k[l]
+                        [list_formula, znane_spr]=dpll1(list_formula, znane_spr)
+                        return vstavljanje(list_formula, znane_spr)
+            else:
+                return [list_formula1, znane_spr1]                     
+             
+    
 
 
 
 
-##def vstavljanje(string_formula,znane_spr={}):      
-##    neznane_spr=[]
-##    for i in string_formula:
-##        for j in i:
-##            if j not in znane_spr.keys() not in neznane_spr :
-##                neznane_spr.append(j)
-##    return neznane_spr        
+                
+            
+
+
+
+
 
     
 ##testne funkcije
